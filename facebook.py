@@ -1,13 +1,21 @@
 import pymongo
 import pandas as pd
-
-
+import urllib.parse
+from pymongo import MongoClient
 # Conexión a MongoDB
-client = pymongo.MongoClient("mongodb://localhost:27017/")
-database = client["Ejemplo"]
+constra = urllib.parse.quote_plus("Z6r80*5O41Bcg9lt")
+client = MongoClient('186.4.176.175:17027',
+                     username='sc4nLimit3d',
+                     password= constra,
+                     authSource='qliksocial',
+                     authMechanism='SCRAM-SHA-256')
+#constra = urllib.parse.quote_plus("Z6r80*5O41Bcg9lt")
+#constra = "Z6r80*5O41Bcg9lt"
+#client = pymongo.MongoClient(f"mongodb://sc4nLimit3d:{constra}@186.4.176.175:17027/?authSource=qliksocial&authMechanism=SCRAM-SHA-256")
+database = client["qliksocial"]
 
 # Nombre de la colección
-collection_name = "cuentasFace"
+collection_name = "pageCfgGB_BK"
 
 # Obtener la colección
 collection = database[collection_name]
@@ -30,15 +38,16 @@ for _, row in df.iterrows():
             username = facebook_url
 
         # Filtrar el documento por el campo "username"
-        filter = {"username": username}
+        #filter = {"_id": itemId}
 
         # Buscar el documento por el username en MongoDB
-        documento = collection.find_one(filter)
+        documento = collection.find_one({"username": username})
 
         # Verificar si se encontró un documento
         if documento:
             # Hacer una copia del documento sin el campo _id
             copia = documento.copy()
+            itemId = documento.get('_id')
             copia.pop('_id', None)
 
             # Realizar las modificaciones en el documento
@@ -57,8 +66,9 @@ for _, row in df.iterrows():
             copia["parish"] = row["PARROQUIA"]
 
             # Actualizar el documento en MongoDB
-            collection.update_one(filter, {"$set": copia})
-
+            filter = {"_id": itemId}
+            #collection.update_one(filter, {"$set": copia})
+            print(copia)
             # Mostrar mensaje de actualización
             print(f"Documento actualizado: {username}")
 

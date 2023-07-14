@@ -1,13 +1,13 @@
 import pymongo
 import pandas as pd
-from urllib.parse import urlparse
+
 
 # Conexión a MongoDB
 client = pymongo.MongoClient("mongodb://localhost:27017/")
 database = client["Ejemplo"]
 
 # Nombre de la colección
-collection_name = "cuentasInsta"
+collection_name = "cuentasTik"
 
 # Obtener la colección
 collection = database[collection_name]
@@ -20,21 +20,21 @@ df = pd.read_excel(excel_file)
 
 # Iterar sobre los registros del archivo Excel
 for _, row in df.iterrows():
-    # Obtener el enlace de Instagram
-    instagram_url = row["Instagram"]
-
-    # Verificar si el enlace es válido
-    if isinstance(instagram_url, str) and instagram_url.strip() != "":
-        # Obtener el nombre de usuario del enlace
-        parsed_url = urlparse(instagram_url)
-        path = parsed_url.path.strip("/")
-        parts = path.split("/")
-        username = parts[0]
+    # Obtener el username del campo "Tiktok"
+    tiktok_url = row["Tiktok"]
+    if isinstance(tiktok_url, str) and tiktok_url.strip() != "":
+        at_symbol_index = tiktok_url.rfind("@")
+        question_mark_index = tiktok_url.rfind("?")
+        if at_symbol_index != -1 and question_mark_index != -1 and question_mark_index > at_symbol_index:
+            username = tiktok_url[at_symbol_index + 1:question_mark_index]
+        elif at_symbol_index != -1:
+            username = tiktok_url[at_symbol_index + 1:]
+        elif question_mark_index != -1:
+            username = tiktok_url[:question_mark_index]
+        else:
+            username = tiktok_url
 
         # Filtrar el documento por el campo "username"
-        # filter = {"username": username}
-
-        # Buscar el documento por el username en MongoDB
         documento = collection.find_one({"username": username})
 
         # Verificar si se encontró un documento
@@ -64,11 +64,11 @@ for _, row in df.iterrows():
             collection.update_one(filter, {"$set": copia})
 
             # Mostrar mensaje de actualización
-            print(f"Documento actualizado en la colección 'cuentasInsta' para el username: {username}")
+            print(f"Documento actualizado: {username}")
 
         else:
-            # Mostrar mensaje de usuario no encontrado
-            print(f"El usuario con el username '{username}' no se encontró en la colección 'cuentasInsta'")
+            # Mostrar mensaje de columna "Tiktok" vacía
+            print(f"Columna 'Tiktok' vacía para el username: {username}")
 
 # Cerrar la conexión a MongoDB
 client.close()
