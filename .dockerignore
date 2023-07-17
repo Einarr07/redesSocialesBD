@@ -1,0 +1,9 @@
+.git
+venv
+test
+.idea
+__pycache__/
+*.sh
+Dockerfile
+Dockerfile.base
+*.yml
