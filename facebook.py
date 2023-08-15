@@ -1,73 +1,48 @@
+import pymongo
 import pandas as pd
-from pymongo import MongoClient
-
-from credentials import mongoCredentials
-from utils import myCapitalize
 
 # Conexión a MongoDB
-client = MongoClient(
-    host=mongoCredentials.get("host"),
-    port=mongoCredentials.get("port"),
-    username=mongoCredentials.get("username"),
-    password=mongoCredentials.get("password"),
-    authSource=mongoCredentials.get("authSource"),
-    authMechanism=mongoCredentials.get("authMechanism")
-)
-database = client["qliksocial"]
-
-# Nombre de la colección
-collection_name = "pageCfgFB_BK"
-# Obtener la colección
+client = pymongo.MongoClient("mongodb://localhost:27017/")
+database = client["Ejemplo"]
+collection_name = "cuentasFace"
 collection = database[collection_name]
+
 # Ruta y nombre del archivo Excel
-excel_file = "Análisis Global EC 1_actualizado.xlsx"
-# Leer el archivo Excel
-df = pd.read_excel(excel_file)
+excel_file = "Cuentas RD.xlsx"
 
-# Iterar sobre los registros del archivo Excel
+# Nombre de la hoja en el archivo Excel
+excel_sheet_name = "Facebook"
+
+# Leer la hoja de cálculo "Facebook" del archivo Excel
+df = pd.read_excel(excel_file, sheet_name=excel_sheet_name)
+
 for _, row in df.iterrows():
-    # Obtener el username del campo "Facebook"
-    myUrl = row["Facebook"]
-    fullUrl = myUrl
-    if isinstance(myUrl, str) and myUrl.strip() != "":
-        myUrl = myUrl.strip()
-        myUrl = myUrl.split("https://www.facebook.com/")[-1]
-        if "/" in myUrl:
-            myUrl = myUrl.split("/")[0]
-        if "profile.php?id=" in myUrl:
-            myUrl = myUrl.replace("profile.php?id=", "")
-        if "?" in myUrl:
-            myUrl = myUrl.split("?")[0]
-        username = myUrl.strip()
-        # Buscar el documento por el username en MongoDB
-        documento = collection.find_one({"$or": [{"username": username}, {"_id": username}]})
+    cuenta = row[1]
+    region = row[2]
+    subregion = row[3]
+    provincia = row[4]
+    municipio = row[5]
 
-        # Verificar si se encontró un documento
-        if documento:
-            # Hacer una copia del documento sin el campo _id
-            copia = documento.copy()
-            itemId = documento.get('_id')
-            copia.pop('_id', None)
+    filter = {"name": cuenta}
+    documento = collection.find_one(filter)
 
-            # Realizar las modificaciones en el documento
-            copia["contextA"] = myCapitalize(row["Contexto del Medio"])
-            tipo_medio = row["Tipo del Medio"]
-            copia["typeA"] = myCapitalize(tipo_medio)
-            copia["country"] = myCapitalize(row["PAÍS"])
-            copia["region"] = myCapitalize(row["REGIÓN"])
-            copia["prov"] = myCapitalize(row["PROVINCIA"])
-            copia["city"] = myCapitalize(row["CIUDAD"])
-            copia["parish"] = myCapitalize(row["PARROQUIA"])
+    if documento:
+        copia = documento.copy()
+        itemId = documento.get('_id')
+        copia.pop('_id', None)
 
-            if username == "SantaElenaRadioFm":
-                print(copia)
-            # Actualizar el documento en MongoDB
-            filter = {"_id": itemId}
-            collection.update_one(filter, {"$set": copia})
-        else:
-            # Mostrar mensaje de columna "Facebook" vacía
-            print(f"No se encontró el documento para el username: [{fullUrl}] [{username}]")
-            # pass
+        #Realizar las modificaciones en el documento
+        copia["region"] = region
+        copia["subRegion"] = subregion
+        copia["prov"] = provincia
+        copia["city"] = municipio
+
+        #Actualizar el documento en Mongo DB
+        filter = {"_id": itemId}
+        collection.update_one(filter, {"$set": copia})
+        print(f"Documento actualizado: {cuenta}")
+    else:
+        print(f"No se encontró un documento para la cuenta: {cuenta}")
 
 # Cerrar la conexión a MongoDB
 client.close()
